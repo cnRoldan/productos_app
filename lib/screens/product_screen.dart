@@ -6,6 +6,8 @@ import 'package:productos_app/ui/input_decorations.dart';
 import 'package:productos_app/widgets/widgets.dart';
 import 'package:provider/provider.dart';
 
+import 'package:image_picker/image_picker.dart';
+
 class ProductScreen extends StatelessWidget {
   const ProductScreen({Key? key}) : super(key: key);
 
@@ -34,14 +36,22 @@ class _ProductScreenBody extends StatelessWidget {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
+        onPressed: productService.isSaving
+        ? null
+        : () async {
           if (!productForm.isValidForm()) {
             return;
           }
 
+          final String? imageUrl = await productService.uploadImage();
+
+          if (imageUrl != null) productForm.product.picture = imageUrl;
+
           await productService.saveOrCreateProduct(productForm.product);
         },
-        child: const Icon(Icons.save_outlined),
+        child: productService.isSaving  
+        ? const CircularProgressIndicator(color: Colors.white,)
+        : const Icon(Icons.save_outlined),
       ),
       body: SingleChildScrollView(
         // keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -67,8 +77,16 @@ class _ProductScreenBody extends StatelessWidget {
                     top: 60,
                     right: 40,
                     child: IconButton(
-                        onPressed: () {
-                          //TODO Cámara o galería
+                        onPressed: () async {
+                          final picker = ImagePicker();
+                          final XFile? pickedFile =
+                              await picker.pickImage(source: ImageSource.camera, imageQuality: 100);
+
+                          if (pickedFile == null) {
+                            return;
+                          }
+
+                          productService.updateSelectedProductImage(pickedFile.path);
                         },
                         icon: const Icon(
                           Icons.camera_alt_outlined,
